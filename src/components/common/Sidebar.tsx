@@ -82,18 +82,8 @@ export default function Sidebar({ layers, onToggleLayer, stats, isOpen }: Sideba
                   : 'hover:bg-esg-card/50 border border-transparent'
               }`}
             >
-              {/* Toggle indicator */}
-              <div
-                className={`w-3 h-3 rounded-full border-2 transition-colors ${
-                  layer.enabled
-                    ? `border-[${layer.color}] bg-[${layer.color}]`
-                    : 'border-slate-500 bg-transparent'
-                }`}
-                style={{
-                  borderColor: layer.enabled ? layer.color : undefined,
-                  backgroundColor: layer.enabled ? layer.color : undefined,
-                }}
-              />
+              {/* Shape indicator matching map markers */}
+              <LayerShapeIndicator layerId={layer.id} color={layer.color} enabled={layer.enabled} />
 
               {/* Icon + text */}
               <div className="flex-1 min-w-0">
@@ -116,6 +106,35 @@ export default function Sidebar({ layers, onToggleLayer, stats, isOpen }: Sideba
               )}
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* Shape Legend */}
+      <div className="px-4 pb-2 pt-3 border-t border-esg-border">
+        <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+          Chú thích hình dạng
+        </h2>
+        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-[1px] bg-esg-blue flex-shrink-0" />
+            <span className="text-[10px] text-slate-400">Chất lượng KK</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-esg-red flex-shrink-0" />
+            <span className="text-[10px] text-slate-400">Động đất</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 flex-shrink-0" style={{ backgroundColor: '#f97316', clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)' }} />
+            <span className="text-[10px] text-slate-400">Thiên tai</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 flex-shrink-0" style={{ backgroundColor: '#eab308', clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)' }} />
+            <span className="text-[10px] text-slate-400">Cháy rừng</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rotate-45 bg-red-500 flex-shrink-0" />
+            <span className="text-[10px] text-slate-400">Xung đột</span>
+          </div>
         </div>
       </div>
 
@@ -181,6 +200,35 @@ export default function Sidebar({ layers, onToggleLayer, stats, isOpen }: Sideba
       </div>
     </aside>
   )
+}
+
+function LayerShapeIndicator({ layerId, color, enabled }: { layerId: string; color: string; enabled: boolean }) {
+  const bg = enabled ? color : 'transparent'
+  const border = enabled ? color : '#64748b'
+
+  switch (layerId) {
+    case 'air-quality':
+      // ■ Square
+      return <div className="w-3 h-3 rounded-[2px] flex-shrink-0 transition-colors" style={{ backgroundColor: bg, border: `2px solid ${border}` }} />
+    case 'earthquakes':
+      // ● Circle
+      return <div className="w-3 h-3 rounded-full flex-shrink-0 transition-colors" style={{ backgroundColor: bg, border: `2px solid ${border}` }} />
+    case 'disasters':
+      // ▲ Triangle
+      return (
+        <div className="w-3.5 h-3 flex-shrink-0 transition-colors" style={{ backgroundColor: enabled ? color : '#64748b', clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)' }} />
+      )
+    case 'fires':
+      // ★ Star
+      return (
+        <div className="w-3.5 h-3.5 flex-shrink-0 transition-colors" style={{ backgroundColor: enabled ? color : '#64748b', clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)' }} />
+      )
+    case 'conflicts':
+      // ◆ Diamond
+      return <div className="w-3 h-3 rotate-45 flex-shrink-0 transition-colors" style={{ backgroundColor: bg, border: `2px solid ${border}` }} />
+    default:
+      return <div className="w-3 h-3 rounded-full flex-shrink-0 transition-colors" style={{ backgroundColor: bg, border: `2px solid ${border}` }} />
+  }
 }
 
 function StatCard({

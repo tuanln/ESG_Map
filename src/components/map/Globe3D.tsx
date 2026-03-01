@@ -21,7 +21,80 @@ interface Globe3DProps {
   showConflicts: boolean
 }
 
-// Helper to safely add a layer (removes existing first)
+// Create SDF shape icon for map markers via canvas
+function createShapeIcon(
+  shape: 'square' | 'triangle' | 'star' | 'diamond',
+  size: number = 64
+): { width: number; height: number; data: Uint8Array } {
+  const canvas = document.createElement('canvas')
+  canvas.width = size
+  canvas.height = size
+  const ctx = canvas.getContext('2d')!
+  ctx.clearRect(0, 0, size, size)
+  ctx.fillStyle = '#ffffff'
+
+  const cx = size / 2
+  const cy = size / 2
+  const m = 6
+
+  switch (shape) {
+    case 'square': {
+      const s = size - m * 2
+      const r = 5
+      ctx.beginPath()
+      ctx.moveTo(m + r, m)
+      ctx.lineTo(m + s - r, m)
+      ctx.quadraticCurveTo(m + s, m, m + s, m + r)
+      ctx.lineTo(m + s, m + s - r)
+      ctx.quadraticCurveTo(m + s, m + s, m + s - r, m + s)
+      ctx.lineTo(m + r, m + s)
+      ctx.quadraticCurveTo(m, m + s, m, m + s - r)
+      ctx.lineTo(m, m + r)
+      ctx.quadraticCurveTo(m, m, m + r, m)
+      ctx.closePath()
+      ctx.fill()
+      break
+    }
+    case 'triangle': {
+      ctx.beginPath()
+      ctx.moveTo(cx, m)
+      ctx.lineTo(size - m, size - m)
+      ctx.lineTo(m, size - m)
+      ctx.closePath()
+      ctx.fill()
+      break
+    }
+    case 'star': {
+      const outerR = cx - m
+      const innerR = outerR * 0.45
+      ctx.beginPath()
+      for (let i = 0; i < 10; i++) {
+        const angle = (i * Math.PI) / 5 - Math.PI / 2
+        const r = i % 2 === 0 ? outerR : innerR
+        ctx.lineTo(cx + r * Math.cos(angle), cy + r * Math.sin(angle))
+      }
+      ctx.closePath()
+      ctx.fill()
+      break
+    }
+    case 'diamond': {
+      const r = cx - m
+      ctx.beginPath()
+      ctx.moveTo(cx, cy - r)
+      ctx.lineTo(cx + r * 0.7, cy)
+      ctx.lineTo(cx, cy + r)
+      ctx.lineTo(cx - r * 0.7, cy)
+      ctx.closePath()
+      ctx.fill()
+      break
+    }
+  }
+
+  const imgData = ctx.getImageData(0, 0, size, size)
+  return { width: size, height: size, data: new Uint8Array(imgData.data.buffer) }
+}
+
+// Helper to safely remove layers and sources
 function safeRemoveLayer(map: maplibregl.Map, layerId: string) {
   if (map.getLayer(layerId)) map.removeLayer(layerId)
 }
@@ -57,18 +130,26 @@ export default function Globe3D({
     map.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'bottom-right')
     map.addControl(new maplibregl.ScaleControl({ maxWidth: 200 }), 'bottom-left')
 
-    map.on('load', () => setMapLoaded(true))
+    map.on('load', () => {
+      // Register custom SDF shape icons for color tinting
+      const shapes = ['square', 'triangle', 'star', 'diamond'] as const
+      shapes.forEach(shape => {
+        const icon = createShapeIcon(shape, 64)
+        map.addImage(`shape-${shape}`, icon, { sdf: true })
+      })
+      setMapLoaded(true)
+    })
 
     mapRef.current = map
     return () => { map.remove(); mapRef.current = null }
   }, [])
 
-  // Helper: close popup
+  // Close popup helper
   const closePopup = () => {
     if (popupRef.current) { popupRef.current.remove(); popupRef.current = null }
   }
 
-  // Helper: show popup
+  // Show popup helper
   const showPopup = (map: maplibregl.Map, lngLat: [number, number], html: string) => {
     closePopup()
     popupRef.current = new maplibregl.Popup({ closeButton: true, maxWidth: '300px' })
@@ -77,11 +158,11 @@ export default function Globe3D({
       .addTo(map)
   }
 
-  // === LAYER 1: Air Quality ===
+  // === LAYER 1: Air Quality (■ Square markers) ===
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return
     const map = mapRef.current
-    safeRemoveLayer(map, 'aq-circles')
+    safeRemoveLayer(map, 'aq-symbols')
     safeRemoveSource(map, 'aq-src')
     if (!showAirQuality || !airQualityStations.length) return
 
@@ -98,15 +179,24 @@ export default function Globe3D({
     })
 
     map.addLayer({
-      id: 'aq-circles', type: 'circle', source: 'aq-src',
+      id: 'aq-symbols',
+      type: 'symbol',
+      source: 'aq-src',
+      layout: {
+        'icon-image': 'shape-square',
+        'icon-size': ['interpolate', ['linear'], ['zoom'], 2, 0.18, 5, 0.3, 10, 0.45],
+        'icon-allow-overlap': true,
+        'icon-ignore-placement': true,
+      },
       paint: {
-        'circle-radius': ['interpolate', ['linear'], ['zoom'], 2, 3, 5, 5, 10, 8],
-        'circle-color': ['get', 'color'], 'circle-opacity': 0.75,
-        'circle-stroke-width': 1, 'circle-stroke-color': 'rgba(255,255,255,0.3)',
+        'icon-color': ['get', 'color'],
+        'icon-opacity': 0.85,
+        'icon-halo-color': 'rgba(255,255,255,0.3)',
+        'icon-halo-width': 1,
       },
     })
 
-    map.on('click', 'aq-circles', (e) => {
+    map.on('click', 'aq-symbols', (e) => {
       if (!e.features?.[0]) return
       const p = e.features[0].properties!
       const c = (e.features[0].geometry as any).coordinates.slice()
@@ -118,11 +208,11 @@ export default function Globe3D({
         <div style="color:#64748b;font-size:11px;margin-top:4px">${formatTimeAgo(p.ts)}</div>
       `)
     })
-    map.on('mouseenter', 'aq-circles', () => { map.getCanvas().style.cursor = 'pointer' })
-    map.on('mouseleave', 'aq-circles', () => { map.getCanvas().style.cursor = '' })
+    map.on('mouseenter', 'aq-symbols', () => { map.getCanvas().style.cursor = 'pointer' })
+    map.on('mouseleave', 'aq-symbols', () => { map.getCanvas().style.cursor = '' })
   }, [airQualityStations, showAirQuality, mapLoaded])
 
-  // === LAYER 2: Earthquakes ===
+  // === LAYER 2: Earthquakes (● Circle markers - seismic waves) ===
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return
     const map = mapRef.current
@@ -149,7 +239,7 @@ export default function Globe3D({
     })
     map.addLayer({
       id: 'eq-labels', type: 'symbol', source: 'eq-src',
-      layout: { 'text-field': ['concat', 'M', ['to-string', ['get', 'mag']]], 'text-size': 10, 'text-offset': [0, -1.5] },
+      layout: { 'text-field': ['concat', 'M', ['to-string', ['get', 'mag']]], 'text-size': 10, 'text-offset': [0, -1.5], 'text-allow-overlap': true },
       paint: { 'text-color': '#fff', 'text-halo-color': '#000', 'text-halo-width': 1 },
       minzoom: 3,
     })
@@ -171,12 +261,12 @@ export default function Globe3D({
     map.on('mouseleave', 'eq-circles', () => { map.getCanvas().style.cursor = '' })
   }, [earthquakes, showEarthquakes, mapLoaded])
 
-  // === LAYER 3: Disasters (GDACS) ===
+  // === LAYER 3: Disasters (▲ Triangle markers - warning) ===
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return
     const map = mapRef.current
-    safeRemoveLayer(map, 'dis-circles')
     safeRemoveLayer(map, 'dis-labels')
+    safeRemoveLayer(map, 'dis-symbols')
     safeRemoveSource(map, 'dis-src')
     if (!showDisasters || !disasters.length) return
 
@@ -193,22 +283,31 @@ export default function Globe3D({
     })
 
     map.addLayer({
-      id: 'dis-circles', type: 'circle', source: 'dis-src',
+      id: 'dis-symbols',
+      type: 'symbol',
+      source: 'dis-src',
+      layout: {
+        'icon-image': 'shape-triangle',
+        'icon-size': ['interpolate', ['linear'], ['zoom'], 2, 0.22, 5, 0.38, 10, 0.55],
+        'icon-allow-overlap': true,
+        'icon-ignore-placement': true,
+      },
       paint: {
-        'circle-radius': ['interpolate', ['linear'], ['zoom'], 2, 5, 5, 8, 10, 12],
-        'circle-color': ['get', 'color'], 'circle-opacity': 0.6,
-        'circle-stroke-width': 2, 'circle-stroke-color': ['get', 'color'],
+        'icon-color': ['get', 'color'],
+        'icon-opacity': 0.8,
+        'icon-halo-color': ['get', 'color'],
+        'icon-halo-width': 1.5,
       },
     })
 
     map.addLayer({
       id: 'dis-labels', type: 'symbol', source: 'dis-src',
-      layout: { 'text-field': ['get', 'typeLabel'], 'text-size': 9, 'text-offset': [0, -1.8] },
+      layout: { 'text-field': ['get', 'typeLabel'], 'text-size': 9, 'text-offset': [0, -1.8], 'text-allow-overlap': true },
       paint: { 'text-color': '#fff', 'text-halo-color': '#000', 'text-halo-width': 1 },
       minzoom: 3,
     })
 
-    map.on('click', 'dis-circles', (e) => {
+    map.on('click', 'dis-symbols', (e) => {
       if (!e.features?.[0]) return
       const p = e.features[0].properties!
       const c = (e.features[0].geometry as any).coordinates.slice()
@@ -224,15 +323,15 @@ export default function Globe3D({
         <a href="${p.link}" target="_blank" rel="noopener" style="color:#3b82f6;font-size:12px;margin-top:4px;display:inline-block">Chi tiết GDACS &rarr;</a>
       `)
     })
-    map.on('mouseenter', 'dis-circles', () => { map.getCanvas().style.cursor = 'pointer' })
-    map.on('mouseleave', 'dis-circles', () => { map.getCanvas().style.cursor = '' })
+    map.on('mouseenter', 'dis-symbols', () => { map.getCanvas().style.cursor = 'pointer' })
+    map.on('mouseleave', 'dis-symbols', () => { map.getCanvas().style.cursor = '' })
   }, [disasters, showDisasters, mapLoaded])
 
-  // === LAYER 4: Fires ===
+  // === LAYER 4: Fires (★ Star markers) ===
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return
     const map = mapRef.current
-    safeRemoveLayer(map, 'fire-circles')
+    safeRemoveLayer(map, 'fire-symbols')
     safeRemoveSource(map, 'fire-src')
     if (!showFires || !fires.length) return
 
@@ -249,15 +348,24 @@ export default function Globe3D({
     })
 
     map.addLayer({
-      id: 'fire-circles', type: 'circle', source: 'fire-src',
+      id: 'fire-symbols',
+      type: 'symbol',
+      source: 'fire-src',
+      layout: {
+        'icon-image': 'shape-star',
+        'icon-size': ['interpolate', ['linear'], ['zoom'], 2, 0.2, 5, 0.35, 10, 0.5],
+        'icon-allow-overlap': true,
+        'icon-ignore-placement': true,
+      },
       paint: {
-        'circle-radius': ['interpolate', ['linear'], ['zoom'], 2, 4, 5, 7, 10, 10],
-        'circle-color': '#f97316', 'circle-opacity': 0.7,
-        'circle-stroke-width': 2, 'circle-stroke-color': '#ef4444',
+        'icon-color': '#f97316',
+        'icon-opacity': 0.85,
+        'icon-halo-color': '#ef4444',
+        'icon-halo-width': 2,
       },
     })
 
-    map.on('click', 'fire-circles', (e) => {
+    map.on('click', 'fire-symbols', (e) => {
       if (!e.features?.[0]) return
       const p = e.features[0].properties!
       const c = (e.features[0].geometry as any).coordinates.slice()
@@ -269,16 +377,16 @@ export default function Globe3D({
         ${p.link ? `<a href="${p.link}" target="_blank" rel="noopener" style="color:#3b82f6;font-size:12px;margin-top:4px;display:inline-block">Chi tiết &rarr;</a>` : ''}
       `)
     })
-    map.on('mouseenter', 'fire-circles', () => { map.getCanvas().style.cursor = 'pointer' })
-    map.on('mouseleave', 'fire-circles', () => { map.getCanvas().style.cursor = '' })
+    map.on('mouseenter', 'fire-symbols', () => { map.getCanvas().style.cursor = 'pointer' })
+    map.on('mouseleave', 'fire-symbols', () => { map.getCanvas().style.cursor = '' })
   }, [fires, showFires, mapLoaded])
 
-  // === LAYER 5: Conflicts ===
+  // === LAYER 5: Conflicts (◆ Diamond markers) ===
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return
     const map = mapRef.current
     safeRemoveLayer(map, 'conf-labels')
-    safeRemoveLayer(map, 'conf-circles')
+    safeRemoveLayer(map, 'conf-symbols')
     safeRemoveSource(map, 'conf-src')
     if (!showConflicts || !conflicts.length) return
 
@@ -295,22 +403,31 @@ export default function Globe3D({
     })
 
     map.addLayer({
-      id: 'conf-circles', type: 'circle', source: 'conf-src',
+      id: 'conf-symbols',
+      type: 'symbol',
+      source: 'conf-src',
+      layout: {
+        'icon-image': 'shape-diamond',
+        'icon-size': ['interpolate', ['linear'], ['zoom'], 2, 0.22, 5, 0.38, 10, 0.55],
+        'icon-allow-overlap': true,
+        'icon-ignore-placement': true,
+      },
       paint: {
-        'circle-radius': ['interpolate', ['linear'], ['zoom'], 2, 5, 5, 8, 10, 12],
-        'circle-color': ['get', 'color'], 'circle-opacity': 0.65,
-        'circle-stroke-width': 2, 'circle-stroke-color': 'rgba(255,255,255,0.4)',
+        'icon-color': ['get', 'color'],
+        'icon-opacity': 0.8,
+        'icon-halo-color': 'rgba(255,255,255,0.4)',
+        'icon-halo-width': 1,
       },
     })
 
     map.addLayer({
       id: 'conf-labels', type: 'symbol', source: 'conf-src',
-      layout: { 'text-field': '⚔', 'text-size': 14, 'text-offset': [0, 0] },
+      layout: { 'text-field': '⚔', 'text-size': 12, 'text-offset': [0, -1.5], 'text-allow-overlap': true },
       paint: {},
       minzoom: 3,
     })
 
-    map.on('click', 'conf-circles', (e) => {
+    map.on('click', 'conf-symbols', (e) => {
       if (!e.features?.[0]) return
       const p = e.features[0].properties!
       const c = (e.features[0].geometry as any).coordinates.slice()
@@ -324,8 +441,8 @@ export default function Globe3D({
         <div style="color:#64748b;font-size:11px;margin-top:4px">${p.date}</div>
       `)
     })
-    map.on('mouseenter', 'conf-circles', () => { map.getCanvas().style.cursor = 'pointer' })
-    map.on('mouseleave', 'conf-circles', () => { map.getCanvas().style.cursor = '' })
+    map.on('mouseenter', 'conf-symbols', () => { map.getCanvas().style.cursor = 'pointer' })
+    map.on('mouseleave', 'conf-symbols', () => { map.getCanvas().style.cursor = '' })
   }, [conflicts, showConflicts, mapLoaded])
 
   return <div ref={mapContainer} className="w-full h-full" />
