@@ -10,6 +10,9 @@ interface SidebarProps {
     stationsCount: number
     earthquakesCount: number
     avgAQI: number
+    disastersCount: number
+    firesCount: number
+    conflictsCount: number
   }
   isOpen: boolean
 }
@@ -44,10 +47,21 @@ export default function Sidebar({ layers, onToggleLayer, stats, isOpen }: Sideba
             subtitle={stats.avgAQI > 0 ? aqiLevel.label : undefined}
           />
           <StatCard
-            label="Cảnh báo"
-            value="—"
+            label="Thiên tai"
+            value={stats.disastersCount.toString()}
+            color="text-orange-400"
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-2 mt-2">
+          <StatCard
+            label="Cháy rừng"
+            value={stats.firesCount.toString()}
             color="text-esg-yellow"
-            subtitle="Đang cập nhật"
+          />
+          <StatCard
+            label="Xung đột"
+            value={stats.conflictsCount.toString()}
+            color="text-red-400"
           />
         </div>
       </div>
