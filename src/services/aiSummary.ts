@@ -1,4 +1,5 @@
 import { AISummary, SummaryHighlight, NewsArticle } from '@/types/news'
+import { SolutionsSummary } from '@/types/solutions'
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || ''
 const GEMINI_MODEL = 'gemini-2.0-flash'
@@ -123,5 +124,109 @@ Tạo 4-6 highlights, ưu tiên các sự kiện quan trọng nhất. Phân bổ
   } catch (error) {
     console.error('AI Summary error:', error)
     return SAMPLE_SUMMARY
+  }
+}
+
+// === Solutions AI Summary ===
+
+const SAMPLE_SOLUTIONS_SUMMARY: SolutionsSummary = {
+  summary: 'Xu hướng giải pháp ESG toàn cầu 2026 tập trung vào 4 trụ cột: năng lượng tái tạo (đặc biệt hydrogen xanh và điện gió ngoài khơi), giao thông xanh (điện hóa vận tải công cộng), nông nghiệp bền vững (ứng dụng AI và công nghệ chính xác), và kinh tế tuần hoàn (zero-waste). Việt Nam nổi bật với các dự án điện mặt trời quy mô lớn tại Ninh Thuận, metro TP.HCM, và chương trình lúa giảm phát thải tại đồng bằng sông Cửu Long.',
+  trends: [
+    {
+      title: 'Hydrogen xanh - Nhiên liệu tương lai',
+      description: 'Đầu tư toàn cầu vào hydrogen xanh tăng 300% so với 2023. Úc, Chile, và Trung Đông dẫn đầu sản xuất. Việt Nam có tiềm năng lớn nhờ bờ biển dài và bức xạ mặt trời cao.',
+      category: 'renewable-energy',
+    },
+    {
+      title: 'Điện hóa giao thông đô thị',
+      description: 'Hơn 60 thành phố cam kết 100% xe buýt điện trước 2035. Trung Quốc dẫn đầu với Thâm Quyến đã hoàn thành 100%. VinBus tại Việt Nam là mô hình tiêu biểu Đông Nam Á.',
+      category: 'green-transport',
+    },
+    {
+      title: 'Nông nghiệp thông minh ứng dụng AI',
+      description: 'AI và drone trong nông nghiệp chính xác giúp giảm 40% lượng phân bón và thuốc BVTV. Việt Nam đang thí điểm tại Đắk Lắk và đồng bằng sông Cửu Long.',
+      category: 'sustainable-agriculture',
+    },
+    {
+      title: 'Zero-waste và kinh tế tuần hoàn',
+      description: 'Mô hình Thụy Điển (tái chế 99% rác) đang được nhiều nước học hỏi. TP.HCM triển khai phân loại rác tại nguồn cho 10 triệu dân, mục tiêu giảm 50% chôn lấp.',
+      category: 'waste-management',
+    },
+  ],
+  vietnamFocus: 'Việt Nam đang có bước tiến mạnh mẽ với 6 dự án ESG tiêu biểu: điện mặt trời Ninh Thuận (450MW), điện gió Bạc Liêu (99MW), Metro TP.HCM tuyến 1, xe buýt điện VinBus, lúa giảm phát thải mê-tan, và cà phê bền vững Đắk Lắk. Chính phủ đặt mục tiêu 30% năng lượng tái tạo vào 2030 và Net Zero vào 2050.',
+  generatedAt: new Date().toISOString(),
+  generatedBy: 'sample',
+}
+
+let cachedSolutionsSummary: SolutionsSummary | null = null
+let solutionsSummaryCacheTime = 0
+const SOLUTIONS_SUMMARY_CACHE_TTL = 60 * 60 * 1000 // 1 hour
+
+export async function generateSolutionsSummary(): Promise<SolutionsSummary> {
+  // Check cache
+  if (cachedSolutionsSummary && Date.now() - solutionsSummaryCacheTime < SOLUTIONS_SUMMARY_CACHE_TTL) {
+    return cachedSolutionsSummary
+  }
+
+  if (!GEMINI_API_KEY) {
+    return SAMPLE_SOLUTIONS_SUMMARY
+  }
+
+  try {
+    const prompt = `Bạn là chuyên gia phân tích giải pháp ESG (Môi trường - Xã hội - Quản trị) toàn cầu. Hãy phân tích xu hướng giải pháp ESG mới nhất và đề xuất cho Việt Nam, bằng tiếng Việt.
+
+Trả về JSON (KHÔNG bao gồm markdown code block, chỉ JSON thuần):
+{
+  "summary": "Tóm tắt xu hướng giải pháp ESG toàn cầu 3-5 câu",
+  "trends": [
+    {
+      "title": "Tên xu hướng",
+      "description": "Mô tả chi tiết 2-3 câu",
+      "category": "renewable-energy|green-transport|sustainable-agriculture|waste-management"
+    }
+  ],
+  "vietnamFocus": "Phân tích và đề xuất 3-4 câu cho Việt Nam"
+}
+
+Tạo 4 trends, mỗi category 1 trend.`
+
+    const res = await fetch(GEMINI_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 2048,
+          responseMimeType: 'application/json',
+        },
+      }),
+      signal: AbortSignal.timeout(30000),
+    })
+
+    if (!res.ok) {
+      console.error('Gemini Solutions Summary error:', res.status)
+      return SAMPLE_SOLUTIONS_SUMMARY
+    }
+
+    const data = await res.json()
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text
+    if (!text) return SAMPLE_SOLUTIONS_SUMMARY
+
+    const parsed = JSON.parse(text)
+    const result: SolutionsSummary = {
+      summary: parsed.summary || SAMPLE_SOLUTIONS_SUMMARY.summary,
+      trends: parsed.trends || SAMPLE_SOLUTIONS_SUMMARY.trends,
+      vietnamFocus: parsed.vietnamFocus || SAMPLE_SOLUTIONS_SUMMARY.vietnamFocus,
+      generatedAt: new Date().toISOString(),
+      generatedBy: 'gemini',
+    }
+
+    cachedSolutionsSummary = result
+    solutionsSummaryCacheTime = Date.now()
+    return result
+  } catch (error) {
+    console.error('Solutions Summary error:', error)
+    return SAMPLE_SOLUTIONS_SUMMARY
   }
 }
