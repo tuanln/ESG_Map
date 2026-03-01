@@ -4,10 +4,10 @@ import { generateAISummary } from '@/services/aiSummary'
 
 export const dynamic = 'force-dynamic'
 
-// Cache summary for 30 minutes
+// Cache summary for 8 hours (aligned with cron 3x/day)
 let cachedSummary: any = null
 let cacheTime = 0
-const CACHE_TTL = 30 * 60 * 1000
+const CACHE_TTL = 8 * 60 * 60 * 1000
 
 export async function GET() {
   try {
@@ -27,7 +27,7 @@ export async function GET() {
 
     return NextResponse.json(cachedSummary)
   } catch (error) {
-    console.error('AI Summary error:', error)
+    console.error('[AI Summary API] Error:', error)
     return NextResponse.json({ error: 'Không thể tạo bản tóm tắt AI' }, { status: 500 })
   }
 }

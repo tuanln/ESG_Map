@@ -1,5 +1,25 @@
 import { ESGCategory } from './news'
 
+// === Standards Types ===
+
+export type StandardType = 'iso-37122' | 'breeam'
+
+export type ISO37122Domain =
+  | 'economy' | 'education' | 'energy' | 'environment' | 'finance'
+  | 'governance' | 'health' | 'recreation' | 'safety' | 'shelter'
+  | 'solid-waste' | 'telecom-innovation' | 'transportation'
+  | 'urban-planning' | 'wastewater' | 'water'
+
+export type BREEAMCategory = 'GO' | 'SE' | 'RE' | 'LE' | 'TM'
+
+export interface StandardInfo {
+  type: StandardType
+  domains?: ISO37122Domain[]
+  categories?: BREEAMCategory[]
+}
+
+// === Solution Types ===
+
 export type SolutionCategory = 'renewable-energy' | 'green-transport' | 'sustainable-agriculture' | 'waste-management'
 
 export interface Solution {
@@ -15,6 +35,7 @@ export interface Solution {
   link?: string
   year: number
   esgAlignment: ESGCategory[]
+  standards?: StandardInfo[]
 }
 
 export interface SolutionStats {
@@ -31,6 +52,8 @@ export interface SolutionsSummary {
   generatedAt: string
   generatedBy: 'gemini' | 'sample'
 }
+
+// === Labels & Colors ===
 
 export const SOLUTION_CATEGORY_LABELS: Record<SolutionCategory, string> = {
   'renewable-energy': 'Năng lượng tái tạo',
@@ -63,4 +86,41 @@ export const SOLUTION_SCALE_LABELS: Record<string, string> = {
   local: 'Địa phương',
   national: 'Quốc gia',
   global: 'Toàn cầu',
+}
+
+export const STANDARD_TYPE_LABELS: Record<StandardType, string> = {
+  'iso-37122': 'ISO 37122',
+  'breeam': 'BREEAM',
+}
+
+export const STANDARD_TYPE_COLORS: Record<StandardType, string> = {
+  'iso-37122': '#06b6d4',
+  'breeam': '#f59e0b',
+}
+
+export const ISO_DOMAIN_LABELS: Record<ISO37122Domain, string> = {
+  'economy': 'Kinh tế',
+  'education': 'Giáo dục',
+  'energy': 'Năng lượng',
+  'environment': 'Môi trường',
+  'finance': 'Tài chính',
+  'governance': 'Quản trị',
+  'health': 'Y tế',
+  'recreation': 'Giải trí',
+  'safety': 'An toàn',
+  'shelter': 'Nhà ở',
+  'solid-waste': 'Chất thải rắn',
+  'telecom-innovation': 'Viễn thông & Đổi mới',
+  'transportation': 'Giao thông',
+  'urban-planning': 'Quy hoạch đô thị',
+  'wastewater': 'Nước thải',
+  'water': 'Nước sạch',
+}
+
+export const BREEAM_CATEGORY_LABELS: Record<BREEAMCategory, string> = {
+  'GO': 'Governance',
+  'SE': 'Social & Economic',
+  'RE': 'Resources & Energy',
+  'LE': 'Land Use & Ecology',
+  'TM': 'Transport & Movement',
 }

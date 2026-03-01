@@ -7,14 +7,20 @@ import {
   SolutionCategory,
   SolutionStats,
   SolutionsSummary,
+  StandardType,
   SOLUTION_CATEGORY_LABELS,
   SOLUTION_CATEGORY_COLORS,
   SOLUTION_CATEGORY_ICONS,
   SOLUTION_STATUS_LABELS,
   SOLUTION_SCALE_LABELS,
+  STANDARD_TYPE_LABELS,
+  STANDARD_TYPE_COLORS,
+  ISO_DOMAIN_LABELS,
+  BREEAM_CATEGORY_LABELS,
 } from '@/types/solutions'
 
 type FilterCategory = SolutionCategory | 'all'
+type FilterStandard = StandardType | 'all'
 
 export default function SolutionsPage() {
   const [solutions, setSolutions] = useState<Solution[]>([])
@@ -22,6 +28,7 @@ export default function SolutionsPage() {
   const [summary, setSummary] = useState<SolutionsSummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<FilterCategory>('all')
+  const [standardFilter, setStandardFilter] = useState<FilterStandard>('all')
 
   useEffect(() => {
     fetch('/api/solutions?summary=true')
@@ -35,11 +42,19 @@ export default function SolutionsPage() {
       .catch(() => setLoading(false))
   }, [])
 
-  const filtered = filter === 'all'
-    ? solutions
-    : solutions.filter(s => s.category === filter)
+  const filtered = solutions.filter(s => {
+    const categoryMatch = filter === 'all' || s.category === filter
+    const standardMatch = standardFilter === 'all' || s.standards?.some(st => st.type === standardFilter)
+    return categoryMatch && standardMatch
+  })
 
   const categories: FilterCategory[] = ['all', 'renewable-energy', 'green-transport', 'sustainable-agriculture', 'waste-management']
+  const standardOptions: FilterStandard[] = ['all', 'iso-37122', 'breeam']
+
+  const standardCounts = {
+    'iso-37122': solutions.filter(s => s.standards?.some(st => st.type === 'iso-37122')).length,
+    'breeam': solutions.filter(s => s.standards?.some(st => st.type === 'breeam')).length,
+  }
 
   return (
     <div className="min-h-screen bg-esg-darker">
@@ -120,6 +135,22 @@ export default function SolutionsPage() {
                       </div>
                     ))}
                   </div>
+
+                  {/* Standards stats */}
+                  <div className="mt-3 pt-3 border-t border-esg-border/50 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-slate-400">ISO 37122 Smart City</span>
+                      <span className="text-xs font-medium" style={{ color: STANDARD_TYPE_COLORS['iso-37122'] }}>
+                        {standardCounts['iso-37122']}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-slate-400">BREEAM Communities</span>
+                      <span className="text-xs font-medium" style={{ color: STANDARD_TYPE_COLORS['breeam'] }}>
+                        {standardCounts['breeam']}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -127,7 +158,7 @@ export default function SolutionsPage() {
             {/* Right: Solutions grid */}
             <div className="lg:col-span-2">
               {/* Filter tabs */}
-              <div className="flex gap-2 mb-4 flex-wrap">
+              <div className="flex gap-2 mb-3 flex-wrap">
                 {categories.map(cat => (
                   <button
                     key={cat}
@@ -146,6 +177,30 @@ export default function SolutionsPage() {
                 ))}
               </div>
 
+              {/* Standards filter */}
+              <div className="flex gap-2 mb-4 flex-wrap">
+                {standardOptions.map(std => (
+                  <button
+                    key={std}
+                    onClick={() => setStandardFilter(std)}
+                    className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${
+                      standardFilter === std
+                        ? 'text-white border'
+                        : 'text-slate-400 hover:text-white hover:bg-esg-card/50'
+                    }`}
+                    style={standardFilter === std ? {
+                      backgroundColor: std === 'all' ? 'var(--esg-card, #1e293b)' : STANDARD_TYPE_COLORS[std] + '20',
+                      borderColor: std === 'all' ? 'var(--esg-border, #334155)' : STANDARD_TYPE_COLORS[std],
+                    } : {}}
+                  >
+                    {std === 'all' ? '🏷️ Tất cả tiêu chuẩn' : `${STANDARD_TYPE_LABELS[std]}`}
+                    {std !== 'all' && (
+                      <span className="ml-1 text-slate-500">({standardCounts[std]})</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+
               {/* Solutions cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {filtered.map(solution => (
@@ -155,7 +210,7 @@ export default function SolutionsPage() {
 
               {filtered.length === 0 && (
                 <div className="text-center py-12 text-slate-500">
-                  <p className="text-sm">Không có giải pháp cho danh mục này</p>
+                  <p className="text-sm">Không có giải pháp cho bộ lọc này</p>
                 </div>
               )}
             </div>
@@ -163,7 +218,7 @@ export default function SolutionsPage() {
         )}
 
         <div className="mt-8 text-center text-xs text-slate-500">
-          Nguồn: World Bank, IEA, UNDP, IRENA, EVN, FAO, UNEP
+          Nguồn: World Bank, IEA, UNDP, IRENA, EVN, FAO, UNEP, ISO 37122, BREEAM
           <br />
           AI phân tích: Google Gemini &bull; Dữ liệu curated từ các dự án thực tế
         </div>
@@ -177,7 +232,7 @@ function SolutionCard({ solution }: { solution: Solution }) {
 
   return (
     <div className="bg-esg-card rounded-xl border border-esg-border p-4 hover:border-slate-500/50 transition-colors group">
-      {/* Category + Status badges */}
+      {/* Category + Status + Standards badges */}
       <div className="flex items-center gap-2 mb-2.5 flex-wrap">
         <span
           className="text-[10px] px-1.5 py-0.5 rounded font-medium"
@@ -192,6 +247,19 @@ function SolutionCard({ solution }: { solution: Solution }) {
         }`}>
           {SOLUTION_STATUS_LABELS[solution.status]}
         </span>
+        {/* Standards badges */}
+        {solution.standards?.map((std, i) => (
+          <span
+            key={i}
+            className="text-[9px] px-1.5 py-0.5 rounded font-semibold"
+            style={{
+              backgroundColor: STANDARD_TYPE_COLORS[std.type] + '20',
+              color: STANDARD_TYPE_COLORS[std.type],
+            }}
+          >
+            {STANDARD_TYPE_LABELS[std.type]}
+          </span>
+        ))}
         <span className="text-[10px] text-slate-500 ml-auto">{solution.year}</span>
       </div>
 
@@ -204,6 +272,26 @@ function SolutionCard({ solution }: { solution: Solution }) {
       <p className="text-[11px] text-slate-400 leading-relaxed mb-3 line-clamp-3">
         {solution.description}
       </p>
+
+      {/* Standards detail (ISO domains / BREEAM categories) */}
+      {solution.standards && solution.standards.length > 0 && (
+        <div className="flex flex-wrap gap-1 mb-2">
+          {solution.standards.map((std, si) => (
+            <span key={si}>
+              {std.type === 'iso-37122' && std.domains?.map((d, di) => (
+                <span key={di} className="inline-block text-[9px] px-1 py-0.5 rounded mr-1 mb-0.5 bg-cyan-900/30 text-cyan-300">
+                  {ISO_DOMAIN_LABELS[d]}
+                </span>
+              ))}
+              {std.type === 'breeam' && std.categories?.map((c, ci) => (
+                <span key={ci} className="inline-block text-[9px] px-1 py-0.5 rounded mr-1 mb-0.5 bg-amber-900/30 text-amber-300">
+                  {BREEAM_CATEGORY_LABELS[c]}
+                </span>
+              ))}
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Impact */}
       <div className="bg-esg-darker/50 rounded-lg px-3 py-2 mb-3">
