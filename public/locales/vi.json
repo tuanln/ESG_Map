@@ -1,0 +1,58 @@
+{
+  "app": {
+    "title": "ESG Map - Bản Đồ ESG Toàn Cầu",
+    "subtitle": "Giám sát Môi trường - Xã hội - Quản trị thời gian thực"
+  },
+  "layers": {
+    "title": "Lớp dữ liệu",
+    "airQuality": "Chất lượng không khí",
+    "earthquakes": "Động đất",
+    "disasters": "Thiên tai",
+    "fires": "Cháy rừng",
+    "conflicts": "Xung đột"
+  },
+  "aqi": {
+    "good": "Tốt",
+    "moderate": "Trung bình",
+    "unhealthySensitive": "Không tốt cho nhóm nhạy cảm",
+    "unhealthy": "Không lành mạnh",
+    "veryUnhealthy": "Rất không lành mạnh",
+    "hazardous": "Nguy hại",
+    "pm25": "Bụi mịn PM2.5",
+    "pm10": "Bụi PM10",
+    "co2": "CO₂",
+    "so2": "SO₂",
+    "no2": "NO₂",
+    "o3": "Ôzôn O₃"
+  },
+  "earthquake": {
+    "magnitude": "Cường độ",
+    "depth": "Độ sâu",
+    "location": "Vị trí",
+    "time": "Thời gian",
+    "tsunami": "Cảnh báo sóng thần"
+  },
+  "nav": {
+    "map": "Bản đồ",
+    "dashboard": "Phân tích",
+    "news": "Tin tức",
+    "solutions": "Giải pháp",
+    "country": "Quốc gia"
+  },
+  "common": {
+    "loading": "Đang tải...",
+    "error": "Lỗi tải dữ liệu",
+    "retry": "Thử lại",
+    "lastUpdate": "Cập nhật lần cuối",
+    "source": "Nguồn dữ liệu",
+    "noData": "Không có dữ liệu",
+    "close": "Đóng",
+    "viewMore": "Xem thêm"
+  },
+  "stats": {
+    "totalStations": "Trạm quan trắc",
+    "totalEarthquakes": "Động đất (7 ngày)",
+    "avgAQI": "AQI trung bình",
+    "criticalAlerts": "Cảnh báo nghiêm trọng"
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "app": {
+    "title": "ESG Map - Global ESG Monitor",
+    "subtitle": "Real-time Environment - Social - Governance Monitoring"
+  },
+  "layers": {
+    "title": "Data Layers",
+    "airQuality": "Air Quality",
+    "earthquakes": "Earthquakes",
+    "disasters": "Disasters",
+    "fires": "Wildfires",
+    "conflicts": "Conflicts"
+  },
+  "aqi": {
+    "good": "Good",
+    "moderate": "Moderate",
+    "unhealthySensitive": "Unhealthy for Sensitive Groups",
+    "unhealthy": "Unhealthy",
+    "veryUnhealthy": "Very Unhealthy",
+    "hazardous": "Hazardous",
+    "pm25": "PM2.5",
+    "pm10": "PM10",
+    "co2": "CO₂",
+    "so2": "SO₂",
+    "no2": "NO₂",
+    "o3": "Ozone O₃"
+  },
+  "earthquake": {
+    "magnitude": "Magnitude",
+    "depth": "Depth",
+    "location": "Location",
+    "time": "Time",
+    "tsunami": "Tsunami Warning"
+  },
+  "nav": {
+    "map": "Map",
+    "dashboard": "Dashboard",
+    "news": "News",
+    "solutions": "Solutions",
+    "country": "Country"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error loading data",
+    "retry": "Retry",
+    "lastUpdate": "Last updated",
+    "source": "Data source",
+    "noData": "No data available",
+    "close": "Close",
+    "viewMore": "View more"
+  },
+  "stats": {
+    "totalStations": "Monitoring Stations",
+    "totalEarthquakes": "Earthquakes (7 days)",
+    "avgAQI": "Average AQI",
+    "criticalAlerts": "Critical Alerts"
+  }
+}
