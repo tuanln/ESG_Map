@@ -93,7 +93,7 @@ function cleanText(text: string): string {
 // In-memory cache
 let cachedNews: NewsArticle[] | null = null
 let cacheTime = 0
-const CACHE_TTL = 8 * 60 * 60 * 1000 // 8 hours (aligned with cron 3x/day)
+const CACHE_TTL = 1 * 60 * 60 * 1000 // 1 hour (aligned with cron every hour)
 
 // Reset cache (used by cron)
 export function resetNewsCache() {

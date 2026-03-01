@@ -190,7 +190,7 @@ const SAMPLE_SOLUTIONS_SUMMARY: SolutionsSummary = {
 
 let cachedSolutionsSummary: SolutionsSummary | null = null
 let solutionsSummaryCacheTime = 0
-const SOLUTIONS_SUMMARY_CACHE_TTL = 8 * 60 * 60 * 1000 // 8 hours
+const SOLUTIONS_SUMMARY_CACHE_TTL = 1 * 60 * 60 * 1000 // 1 hour
 
 export async function generateSolutionsSummary(forceRefresh = false): Promise<SolutionsSummary> {
   // Check cache (unless force refresh)
